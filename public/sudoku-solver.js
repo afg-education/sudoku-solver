@@ -14,13 +14,94 @@ Every SQUARE has exactly 3 UNITS and 20 PEERS
 const textArea = document.getElementById("text-input");
 // import { puzzlesAndSolutions } from './puzzle-strings.js';
 
+let userGrid;
+let userInput;
+
 document.addEventListener("DOMContentLoaded", () => {
+  //add listeners
+
+  // Add event listener to all the 81 input fields on the grid
+  let elements = document.getElementsByClassName("sudoku-input");
+  Array.from(elements).forEach((ele) =>
+    ele.addEventListener("input", handleGridInput)
+  );
+  // Add event Listener for the clear and solve buttons as well as the text input field
+  document
+    .getElementById("clear-button")
+    .addEventListener("click", handleClear);
+  document.getElementById("solve-button").addEventListener("click", solve);
+  textArea.addEventListener("input", handleTextArea);
+
   // Load a simple puzzle into the text area
   textArea.value =
     "..9..5.1.85.4....2432......1...69.83.9.....6.62.71...9......1945....4.37.4.3..6..";
-  
-  
+
+  userInput = textArea.value;
+  parseTextToGrid(userInput);
 });
+
+// START: take user input text and convert it to grid
+
+// Only allow 1-9 and .
+// Anything not 81 in length will not trigger a DOM change for grid and array
+const handleTextArea = function () {
+  this.value = this.value.replace(/[^1-9.]/g, "");
+  if (this.value.length !== 81) {
+    return;
+  }
+  parseTextToGrid(this.value);
+};
+
+const handleClear = () => {
+  userInput = "";
+  textArea.value = userInput;
+  parseTextToGrid(userInput);
+};
+
+const parseArrToStr = () => {
+  let flatten = userGrid.flat();
+  userInput = flatten.join("");
+  textArea.value = userInput;
+};
+
+// This function does not use arrow func because we need to use 'this'
+const handleGridInput = function () {
+  // Only allow 1-9 and nothing else
+  this.value = this.value.replace(/[^1-9]/g, "");
+  // Example A1 will be split into ['A', '1']
+  const [letter, num] = this.id.split("");
+  const row = rows.indexOf(letter);
+  const col = num - 1;
+  userGrid[row][col] = this.value !== "" ? this.value : ".";
+  parseArrToStr();
+};
+
+const parseStrToArr = (str) => {
+  let intermediateArr = [];
+  if (str.length === 0) {
+    str = ".".repeat(81);
+  }
+  for (let x = 0; x < rows.length; x++) {
+    let eachRow = str.substr(x * 9, 9);
+    intermediateArr.push(eachRow.split(""));
+  }
+  console.log(intermediateArr);
+  return intermediateArr;
+};
+
+const parseTextToGrid = (input) => {
+  userGrid = parseStrToArr(input);
+  for (let x = 0; x < rows.length; x++) {
+    for (let y = 1; y < 10; y++) {
+      let gridName = rows[x] + y.toString();
+      let val = userGrid[x][y - 1];
+      let target = document.getElementById(gridName);
+      target.value = val !== "." ? val : "";
+    }
+  }
+};
+
+// END: take user input text and convert it to grid and vice versa
 
 //function to create SQUARES
 function createSquares(rows, cols) {
@@ -39,6 +120,7 @@ let digits = "123456789";
 
 //create SQUARES
 let squares = createSquares(rows, cols);
+console.log(`squares : ${squares}`);
 
 // create UNITS
 // (eg. row, column and box units. each unit as arrays, containing squares)
@@ -52,8 +134,16 @@ for (let r in rows) {
 }
 
 //helper variables
-let rrows = [["A", "B", "C"], ["D", "E", "F"], ["G", "H", "I"]];
-let ccols = [["1", "2", "3"], ["4", "5", "6"], ["7", "8", "9"]];
+let rrows = [
+  ["A", "B", "C"],
+  ["D", "E", "F"],
+  ["G", "H", "I"],
+];
+let ccols = [
+  ["1", "2", "3"],
+  ["4", "5", "6"],
+  ["7", "8", "9"],
+];
 
 for (let rs in rrows) {
   for (let cs in ccols) {
@@ -61,7 +151,7 @@ for (let rs in rrows) {
   }
 }
 
-//console.log(units);
+console.log(`units : ${units}`);
 // end of create UNITS
 
 //create SQUARE-UNIT relationship
@@ -81,7 +171,7 @@ for (var s in squares) {
       unitsOfEachSquare[squares[s]].push(units[u]);
 }
 
-//console.log(unitsOfEachSquare);
+console.log(unitsOfEachSquare);
 //end of create SQUARE-UNIT relationship
 
 //create PEERS
@@ -95,9 +185,8 @@ for (let s in squares) {
   }
 }
 
-//console.log(peers);
+console.log(peers);
 //end of create PEERS
-
 
 // start of solving assigning and eliminating
 
@@ -146,8 +235,8 @@ function eliminate(values, sq, dig) {
 }
 
 // Given a string of 81 digits (or . or 0 or -), return an object as {cell:values}
-function parse(input) {
-  console.log(input);
+function solve() {
+  console.log(userInput);
   //create a boilerplate result object, each square has every digit as a possible option. (i.e. each square can be "123456789")
   //e.g. {I9: '123456789'} for 81 squares from A1 to I9.
   let values = {};
@@ -157,22 +246,30 @@ function parse(input) {
 
   //remove invalid chars from string
   let initialGrid = "";
-  for (var c = 0; c < input.length; c++) {
-    if ("0.-123456789".indexOf(input.charAt(c)) >= 0) {
-      initialGrid += input.charAt(c);
+  for (var c = 0; c < userInput.length; c++) {
+    if ("0.-123456789".indexOf(userInput.charAt(c)) >= 0) {
+      initialGrid += userInput.charAt(c);
     }
   }
   console.log(initialGrid);
 
-  for (var s in squares)
+  for (var s in squares) {
     if (
       digits.indexOf(initialGrid.charAt(s)) >= 0 &&
       !assign(values, squares[s], initialGrid.charAt(s))
     ) {
       return false;
     }
+  }
+  let solution = Object.values(values);
+  console.log(solution);
+  let flatten = solution.flat();
+  console.log(flatten.join(""));
+  userInput = flatten.join("");
+  textArea.value = userInput;
+  parseTextToGrid(userInput);
   //console.log(values);
-  return values;
+  //return values;
 }
 
 // end of solving assigning and eliminating
